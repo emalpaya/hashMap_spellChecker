@@ -148,10 +148,11 @@ int* hashMapGet(HashMap* map, const char* key)
         if (current->key == key)
         {
             // If so, return it
-            return current->value;
+            int* found = &(current->value);
+            return found;
         }
         // Move to next link
-        current = &current->next;
+        current = current->next;
     }
     // Key not found
     return NULL;
