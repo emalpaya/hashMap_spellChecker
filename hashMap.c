@@ -151,7 +151,7 @@ int* hashMapGet(HashMap* map, const char* key)
             return current->value;
         }
         // Move to next link
-        current = current->next;
+        current = &current->next;
     }
     // Key not found
     return NULL;
