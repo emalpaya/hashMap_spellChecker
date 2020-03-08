@@ -1,8 +1,8 @@
 /*
  * CS 261 Data Structures
  * Assignment 5
- * Name: 
- * Date: 
+ * Name: Eva Malpaya
+ * Date: 3/11/2020
  */
 
 #include "hashMap.h"
@@ -84,6 +84,14 @@ void hashMapInit(HashMap* map, int capacity)
 void hashMapCleanUp(HashMap* map)
 {
     // FIXME: implement
+
+    assert(map != NULL);
+
+    // Loop through the map and free allocated memory
+    for (int i = 0; i < capacity; i++)
+    {
+        hashLinkDelete(map->table[i]);
+    }
 }
 
 /**
@@ -124,6 +132,28 @@ void hashMapDelete(HashMap* map)
 int* hashMapGet(HashMap* map, const char* key)
 {
     // FIXME: implement
+    assert(map != NULL);
+    assert(key != NULL);
+
+    // Compute the hash value to find the correct bucket
+    int hashIndex = HASH_FUNCTION(key);
+
+    // Set a current link to the beginning of the list that has been hashed
+    struct HashLink* current = map->table[hashIndex];
+
+
+    while (current != NULL)
+    {
+        // Determine if current link is one being searched for
+        if (current->key == key)
+        {
+            // If so, return it
+            return current;
+        }
+        // Move to next link
+        current = current->next;
+    }
+    // Key not found
     return NULL;
 }
 
@@ -141,6 +171,31 @@ int* hashMapGet(HashMap* map, const char* key)
 void resizeTable(HashMap* map, int capacity)
 {
     // FIXME: implement
+    assert(map != NULL);
+    assert(key != NULL);
+
+    // Create new map with twice the size
+    struct HashMap* newMap;
+    hashMapInit(newMap, map->size * 2);
+    struct HashLink = current;
+
+    // Loop through old map and traverse links. Add value to new map.
+    for (int i = 0; i < map->size; i++)
+    {
+        current = map->table[i];
+
+        while (current != NULL)
+        {
+            hashMapPut(newMap, current->key, current->value);
+            current = current->next;
+        }
+    }
+
+    // Delete old map. Set old map value equal to new map.
+    free(map->table);
+    free(map);
+    map = newMap;
+    newMap = NULL;
 }
 
 /**
@@ -159,6 +214,30 @@ void resizeTable(HashMap* map, int capacity)
 void hashMapPut(HashMap* map, const char* key, int value)
 {
     // FIXME: implement
+    assert(map != NULL);
+    assert(key != NULL);
+
+    // Compute the hash value to find the correct bucket
+    int hashIndex = HASH_FUNCTION(key);
+
+    // Set a current link to the beginning of the list that has been hashed
+    struct HashLink* current = map->table[hashIndex];
+
+    while (current != NULL)
+    {
+        // Determine if current link is one being searched for
+        if (current->key == key)
+        {
+            // If so, update the value and skip traversing
+            current->value = value;
+            current = NULL;
+        }
+        // Move to next link
+        current = current->next;
+    }
+    // Otherwise, create new link with given key and value and add to map
+    hashLinkNew(key, value, NULL);
+
 }
 
 /**
@@ -171,6 +250,43 @@ void hashMapPut(HashMap* map, const char* key, int value)
 void hashMapRemove(HashMap* map, const char* key)
 {
     // FIXME: implement
+    assert(map != NULL);
+    assert(key != NULL);
+
+    // Compute the hash value to find the correct bucket
+    int hashIndex = HASH_FUNCTION(key);
+
+    // Set a current link to the beginning of the list that has been hashed
+    struct HashLink* current = map->table[hashIndex];
+    struct HashLink* prev = 0;
+
+    while (current != NULL)
+    {
+        // Determine if current link is one being searched for
+        if (current->key == key)
+        {
+            // If value found at first entry, set beginning to next entry
+            if (prev == 0)
+            {
+                map->table[hashIndex] = current->next;
+            }
+            // If value is in the middle, link previous and next
+            else
+            {
+                prev->next = current->next;
+            }
+
+            // Delete the link and decrement count; end function
+            hashLinkDelete(current);
+            map->size--;
+            return;
+        }
+        // Move to next link
+        prev = current;
+        current = current->next;
+    }
+    // Otherwise, create new link with given key and value and add to map
+    hashLinkNew(key, value, NULL);
 }
 
 /**
@@ -186,6 +302,27 @@ void hashMapRemove(HashMap* map, const char* key)
 int hashMapContainsKey(HashMap* map, const char* key)
 {
     // FIXME: implement
+    assert(map != NULL);
+    assert(key != NULL);
+
+    // Compute the hash value to find the correct bucket
+    int hashIndex = HASH_FUNCTION(key);
+
+    // Set a current link to the beginning of the list that has been hashed
+    struct HashLink* current = map->table[hashIndex];
+
+    while (current != NULL)
+    {
+        // Determine if current link is one being searched for
+        if (current->key == key)
+        {
+            // If so, return true if found
+            return 1;
+        }
+        // Move to next link
+        current = current->next;
+    }
+    // Return false if reached of list without finding
     return 0;
 }
 
@@ -197,7 +334,9 @@ int hashMapContainsKey(HashMap* map, const char* key)
 int hashMapSize(HashMap* map)
 {
     // FIXME: implement
-    return 0;
+    assert(map != NULL);
+
+    map->size;
 }
 
 /**
@@ -208,7 +347,9 @@ int hashMapSize(HashMap* map)
 int hashMapCapacity(HashMap* map)
 {
     // FIXME: implement
-    return 0;
+    assert(map != NULL);
+
+    return map->capacity;
 }
 
 /**
@@ -219,7 +360,9 @@ int hashMapCapacity(HashMap* map)
 int hashMapEmptyBuckets(HashMap* map)
 {
     // FIXME: implement
-    return 0;
+    assert(map != NULL);
+
+    return map->capacity - map->size;
 }
 
 /**
@@ -233,7 +376,9 @@ int hashMapEmptyBuckets(HashMap* map)
 float hashMapTableLoad(HashMap* map)
 {
     // FIXME: implement
-    return 0;
+    assert(map != NULL);
+
+    return (map->size / (map->capacity - hashMapEmptyBuckets(map))) * 1.0;
 }
 
 /**
@@ -243,6 +388,30 @@ float hashMapTableLoad(HashMap* map)
 void hashMapPrint(HashMap* map)
 {
   // FIXME: implement
+    assert(map != NULL);
 
+    // Set a current link to the beginning of the list that has been hashed
+    struct HashLink* current = NULL; // map->table[hashIndex];
+
+    // for the capacity of the map
+    for (int i = 0; i < map->capacity; i++)
+    {
+        current = map->table[i];
+
+        // if it is not an empty bucket
+        if (map->table[i] != NULL)
+        {
+            // print the values in the bucket
+            while (current->next != NULL)
+            {
+
+                // print the values in the bucket
+                printf("%d ", map->current->value);
+
+                // Move to next link
+                current = current->next;
+             }
+        }
+    }
    
 }
