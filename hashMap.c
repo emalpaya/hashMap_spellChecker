@@ -88,7 +88,7 @@ void hashMapCleanUp(HashMap* map)
     assert(map != NULL);
 
     // Loop through the map and free allocated memory
-    for (int i = 0; i < capacity; i++)
+    for (int i = 0; i < map->capacity; i++)
     {
         hashLinkDelete(map->table[i]);
     }
@@ -148,7 +148,7 @@ int* hashMapGet(HashMap* map, const char* key)
         if (current->key == key)
         {
             // If so, return it
-            return current;
+            return current->value;
         }
         // Move to next link
         current = current->next;
@@ -172,12 +172,11 @@ void resizeTable(HashMap* map, int capacity)
 {
     // FIXME: implement
     assert(map != NULL);
-    assert(key != NULL);
 
     // Create new map with twice the size
     struct HashMap* newMap;
     hashMapInit(newMap, map->size * 2);
-    struct HashLink = current;
+    struct HashLink *current = NULL;
 
     // Loop through old map and traverse links. Add value to new map.
     for (int i = 0; i < map->size; i++)
@@ -285,8 +284,6 @@ void hashMapRemove(HashMap* map, const char* key)
         prev = current;
         current = current->next;
     }
-    // Otherwise, create new link with given key and value and add to map
-    hashLinkNew(key, value, NULL);
 }
 
 /**
@@ -336,7 +333,7 @@ int hashMapSize(HashMap* map)
     // FIXME: implement
     assert(map != NULL);
 
-    map->size;
+    return map->size;
 }
 
 /**
@@ -406,7 +403,7 @@ void hashMapPrint(HashMap* map)
             {
 
                 // print the values in the bucket
-                printf("%d ", map->current->value);
+                printf("%d ", current->value);
 
                 // Move to next link
                 current = current->next;
