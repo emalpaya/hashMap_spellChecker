@@ -175,7 +175,7 @@ void resizeTable(HashMap* map, int capacity)
     assert(map != NULL);
 
     // Create new map with twice the size
-    struct HashMap* newMap;
+    struct HashMap* newMap = NULL;
     hashMapInit(newMap, map->size * 2);
     struct HashLink *current = NULL;
 
