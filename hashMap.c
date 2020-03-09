@@ -195,12 +195,11 @@ void resizeTable(HashMap* map, int capacity)
     assert(map != NULL);
 
     // Create new map with twice the size
-    struct HashMap* newMap = NULL;
-    hashMapInit(newMap, map->size * 2);
-    struct HashLink *current = NULL;
+    struct HashMap* newMap = hashMapNew(capacity);
+    struct HashLink *current;
 
     // Loop through old map and traverse links. Add value to new map.
-    for (int i = 0; i < map->size; i++)
+    for (int i = 0; i < capacity / 2; i++)
     {
         current = map->table[i];
 
@@ -262,9 +261,24 @@ void hashMapPut(HashMap* map, const char* key, int value)
     }
 
     // Key not found; add new link
+    // Make sure have space and under load factor threshold
+    if (hashMapTableLoad(map) > 0.75)
+    {
+        resizeTable(map, map->capacity * 2);
+
+        // Re-compute the hash value to find the correct bucket after resize
+        hashIndex = HASH_FUNCTION(key) % map->capacity;
+
+        if (hashIndex < 0)
+        {
+            hashIndex += map->capacity;
+        }
+    }
+
     struct HashLink* newLink = hashLinkNew(key, value, map->table[hashIndex]);
     map->table[hashIndex] = newLink;
     map->size++;
+
 }
 
 /**
