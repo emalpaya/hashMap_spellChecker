@@ -211,10 +211,13 @@ void resizeTable(HashMap* map, int capacity)
     }
 
     // Delete old map. Set old map value equal to new map.
-    free(map->table);
-    free(map);
-    map = newMap;
-    newMap = NULL;
+    hashMapCleanUp(map);
+    map->capacity = newMap->capacity;
+    map->size = newMap->size;
+    map->table = newMap->table;
+
+    newMap->table = NULL;
+    free(newMap);
 }
 
 /**
