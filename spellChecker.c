@@ -6,31 +6,323 @@
 #include <string.h>
 #include <ctype.h>
 
-int isCharAlpha(char c);
-int levenshteinDistance(char str1[], char str2[], int len1, int len2);
-
-int hashFunctionSpellChecker(const char* key)
+// declare added structs and functions
+struct HashLinkSwapped
 {
-    int r = 0;
-    for (int i = 0; key[i] != '\0'; i++)
-    {
-        r += (i + 1) * key[i];
-    }
-    return r;
+    char* value;
+    int key;
+    struct HashLinkSwapped* next;
+};
+
+struct HashMapSwapped
+{
+    struct HashLinkSwapped** table;
+    // Number of links in the table.
+    int size;
+    // Number of buckets in the table.
+    int capacity;
+};
+
+// added functions
+int levenshteinDistance(char str1[], char str2[], int len1, int len2);
+void fillMapWithDistance(struct HashMapSwapped map, char input[], int lenInput);
+void loadDictByValues(HashMap* map, struct HashMapSwapped* mapByValues);
+void printFiveSmallest(struct HashMapSwapped* mapByValues);
+
+// hashMapSwapped
+struct HashMapSwapped* hashMapSwappedNew(int capacity);
+void hashMapSwappedInit(struct HashMapSwapped* map, int capacity);
+struct HashLinkSwapped* hashLinkSwappedNew(const char* value, int key, struct HashLinkSwapped* next);
+float hashMapSwappedTableLoad(struct HashMapSwapped* map);
+void hashMapSwappedPut(struct HashMapSwapped* map, int key, const char* value);
+static void hashLinkSwappedDelete(struct HashLinkSwapped* link);
+void hashMapSwappedCleanUp(struct HashMapSwapped* map);
+void hashMapSwappedDelete(struct HashMapSwapped* map);
+
+
+
+/**
+ * Creates a hash table map, allocating memory for a link pointer table with
+ * the given number of buckets.
+ * @param capacity The number of buckets.
+ * @return The allocated map.
+ */
+struct HashMapSwapped* hashMapSwappedNew(int capacity)
+{
+    struct HashMapSwapped* map = malloc(sizeof(struct HashMapSwapped));
+    hashMapSwappedInit(map, capacity);
+    return map;
 }
 
+/**
+ * Initializes a hash table map, allocating memory for a link pointer table with
+ * the given number of buckets.
+ * @param map
+ * @param capacity The number of table buckets.
+ */
+void hashMapSwappedInit(struct HashMapSwapped* map, int capacity)
+{
+    map->capacity = capacity;
+    map->size = 0;
+    map->table = malloc(sizeof(struct HashLinkSwapped*) * capacity);
+    for (int i = 0; i < capacity; i++)
+    {
+        map->table[i] = NULL;
+    }
+}
+
+/**
+ * Creates a new hash table link with a copy of the key string.
+ * @param key Key string to copy in the link.
+ * @param value Value to set in the link.
+ * @param next Pointer to set as the link's next.
+ * @return Hash table link allocated on the heap.
+ */
+struct HashLinkSwapped* hashLinkSwappedNew(const char* value, int key, struct HashLinkSwapped* next)
+{
+    struct HashLinkSwapped* link = malloc(sizeof(struct HashLinkSwapped));
+    link->value = malloc(sizeof(char) * (strlen(key) + 1));
+    strcpy(link->value, value);
+    link->key = key;
+    link->next = next;
+    return link;
+}
+
+/**
+ * Returns the ratio of (number of links) / (number of buckets) in the table.
+ * Remember that the buckets are linked lists, so this ratio tells you nothing
+ * about the number of empty buckets. Remember also that the load is a floating
+ * point number, so don't do integer division.
+ * @param map
+ * @return Table load.
+ */
+float hashMapSwappedTableLoad(struct HashMapSwapped* map)
+{
+    // FIXME: implement
+    assert(map != NULL);
+
+    return (float)(map->size / map->capacity);
+}
+
+/**
+ * Updates the given key-value pair in the hash table. If a link with the given
+ * key already exists, this will just update the value and skip traversing. Otherwise, it will
+ * create a new link with the given key and value and add it to the table
+ * bucket's linked list. You can use hashLinkNew to create the link.
+ *
+ * Use HASH_FUNCTION(key) and the map's capacity to find the index of the
+ * correct linked list bucket.
+ *
+ * @param map
+ * @param key
+ * @param value
+ */
+void hashMapSwappedPut(struct HashMapSwapped* map, int key, const char* value)
+{
+    // FIXME: implement
+    assert(map != NULL);
+    assert(value != NULL);
+
+    char str[50];
+    sprintf(str, "%d", key);
+
+    // Compute the hash value to find the correct bucket
+    int hashIndex = HASH_FUNCTION(str) % map->capacity;
+
+    if (hashIndex < 0)
+    {
+        hashIndex += map->capacity;
+    }
+
+    // Set a current link to the beginning of the list that has been hashed
+    struct HashLinkSwapped* current = map->table[hashIndex];
+
+    while (current != NULL)
+    {
+        // Determine if key exists in bucket
+        if (current->key == key)
+        {
+            // If so, update the value
+            current->value = value;
+            return;
+        }
+        // Move to next link
+        current = current->next;
+    }
+
+    // Key not found; add new link
+    // Make sure have space and under load factor threshold
+    if (hashMapSwappedTableLoad(map) > 0.75)
+    {
+        resizeTable(map, map->capacity * 2);
+
+        char str[50];
+        sprintf(str, "%d", key);
+
+        // Compute the hash value to find the correct bucket
+        int hashIndex = HASH_FUNCTION(str) % map->capacity;
+
+        if (hashIndex < 0)
+        {
+            hashIndex += map->capacity;
+        }
+    }
+    struct HashLinkSwapped* newLink = malloc(sizeof(struct HashLinkSwapped));
+    newLink->value = malloc(sizeof(char) * (strlen(value) + 1));
+    strcpy(newLink->value, value);
+    newLink->key = key;
+    newLink->next = map->table[hashIndex];
+    map->table[hashIndex] = newLink;
+    map->size++;
+}
+
+/**
+ * Free the allocated memory for a hash table link created with hashLinkNew.
+ * @param link
+ */
+static void hashLinkSwappedDelete(struct HashLinkSwapped* link)
+{
+    free(link->value);
+    free(link);
+}
+
+/**
+ * Removes all links in the map and frees all allocated memory. You can use
+ * hashLinkDelete to free the links.
+ * @param map
+ */
+void hashMapSwappedCleanUp(struct HashMapSwapped* map)
+{
+    assert(map != NULL);
+
+    // loop through the map, clearing buckets if not empty
+    for (int i = 0; i < map->capacity; i++)
+    {
+        if (map->table[i] != NULL) // bucket not empty
+        {
+            while (map->table[i]->next != NULL) // pop links until one left
+            {
+                // store link to pop
+                struct HashLinkSwapped* temp;
+                temp = map->table[i];
+
+                // link head to rest of bucket
+                map->table[i] = map->table[i]->next;
+
+                // pop the stored link
+                hashLinkSwappedDelete(temp);
+                temp = 0;
+            }
+
+            // delete last link
+            hashLinkSwappedDelete(map->table[i]);
+        }
+    }
+    map->size = 0;
+}
+
+/**
+ * Removes all links in the map and frees all allocated memory, including the
+ * map itself.
+ * @param map
+ */
+void hashMapSwappedDelete(struct HashMapSwapped* map)
+{
+    hashMapSwappedCleanUp(map);
+    free(map);
+}
+
+
+/**
+ * Loads the contents of the file into the hash map.
+ * @param file
+ * @param map
+ */
+void loadDictByValues(HashMap* map, struct HashMapSwapped* mapByValue)
+{
+
+    assert(map != NULL);
+    assert(mapByValue != NULL);
+
+    struct HashLink* current = NULL;
+
+    // for the capacity of the map
+    for (int i = 0; i < map->capacity; i++)
+    {
+        if (map->table[i] != NULL) // if bucket not empty
+        {
+            current = map->table[i];
+
+            while (current != NULL)
+            {
+                hashMapSwappedPut(mapByValue, current->value, current->key);
+
+                current = current->next;
+            }
+        }
+    }
+
+}
+
+/**
+ * Prints all the links in each of the buckets in the table.
+ * @param map
+ */
+void printFiveSmallest(struct HashMapSwapped* map)
+{
+    // FIXME: implement
+    assert(map != NULL);
+    int count = 0;
+    int fiveOnly = 0;
+
+    struct HashLinkSwapped* current = NULL;
+
+    while (fiveOnly == 0)
+    {
+        // for the capacity of the map
+        for (int i = 0; i < map->capacity; i++)
+        {
+            if (map->table[i] != NULL) // if bucket not empty
+            {
+                current = map->table[i];
+
+                while (current != NULL)
+                {
+                    printf("%s\n", current->value);
+                    count++;
+
+                    if (count > 4)
+                    {
+                        fiveOnly = 1;
+                        i = map->capacity;
+                    }
+
+                    current = current->next;
+                }
+            }
+        }
+    }
+
+}
+
+/**
+ * Accepts two strings and their lengths, calculates the levenshtein
+ * distance between them, and returns it.
+ * @param str1
+ * @param str2
+ * @param len1
+ * @param len2
+ * @return levenshtein distance
+ *
+ * Sources consulted for this function (Retrieved March 2020):
+ * https://en.wikipedia.org/wiki/Levenshtein_distance
+ * https://medium.com/@ethannam/understanding-the-levenshtein-distance-equation-for-beginners-c4285a5604f0
+**/
 int levenshteinDistance(char str1[], char str2[], int len1, int len2)
 {
     int distance;
     int deleteCost, insertCost, subCost = 0;
     int* temp = NULL;
-    //int len1 = (sizeof(str1) / sizeof(str1[0]));
-    //int len2 = (sizeof(str2) / sizeof(str2[0]));
-
-    // TESTPRINT
-    //printf("%d ", len1);
-    //printf("%d ", len2);
-
     
     int* previous = (int*)malloc(sizeof(int) * (len1 + 1));
     int* current = (int*)malloc(sizeof(int) * (len1 + 1));
@@ -46,24 +338,12 @@ int levenshteinDistance(char str1[], char str2[], int len1, int len2)
         current[m] = m + 1;
     }
 
-    // initialize previous row with distance to delete
-    //for (i = 0; i < len2; i++)
-    //{
-    //    previous[i] = i;
-    //}
-
-    //TESTPRINT
-    //for (i = 0; i < len1; i++)
-    //{
-    //    printf("%d ", previous[i]);
-    //}
-
     for (int i = 0; i < len2; i++)
     {
         // fill first element of current
         current[0] = i + 1;
     
-        // fill remaining rows of current
+        // fill remaining columns of current
         for (int j = 0; j < len1; j++)
         {
             deleteCost = previous[j + 1] + 1;
@@ -81,20 +361,7 @@ int levenshteinDistance(char str1[], char str2[], int len1, int len2)
             current[j + 1] = min(deleteCost, min(insertCost, subCost));
 
         }
-        //TESTPRINT
-        printf("previous row:  ");
-        for (int z = 0; z < len1 + 1; z++)
-        {
-            printf("%d ", previous[z]);
-        }
-        printf("\n");
-        //TESTPRINT
-        printf("current row:  ");
-        for (int y = 0; y < len1 +1; y++)
-        {
-            printf("%d ", current[y]);
-        }
-        printf("\n");
+
         // swap current and previous
         temp = previous;
         previous = NULL;
@@ -103,23 +370,7 @@ int levenshteinDistance(char str1[], char str2[], int len1, int len2)
         current = temp;
         temp = NULL;
 
-        //TESTPRINT
-        printf("previous row swapped:  ");
-        for (int w = 0; w < len1 + 1; w++)
-        {
-            printf("%d ", previous[w]);
-        }
-        printf("\n");
-        //TESTPRINT
-        printf("current row swapped:  ");
-        for (int u = 0; u < len1 + 1; u++)
-        {
-            printf("%d ", current[u]);
-        }
-        printf("\n");
-
     }
-
 
     // store return value
     distance = previous[len1];
@@ -134,45 +385,39 @@ int levenshteinDistance(char str1[], char str2[], int len1, int len2)
     return distance;
 }
 
-/*
-int levenshteinDistance(char s[0..m - 1], char t[0..n - 1])
+void fillMapWithDistance(HashMap* map, char input[], int lenInput)
 {
-    // create two work vectors of integer distances
-    declare int v0[n + 1]
-        declare int v1[n + 1]
+    // FIXME: implement
+    assert(map != NULL);
 
-        // initialize v0 (the previous row of distances)
-        // this row is A[0][i]: edit distance for an empty s
-        // the distance is just the number of characters to delete from t
-        for i from 0 to n :
-    v0[i] = i
+    int currentValueLength = 0;
 
-        for i from 0 to m - 1 :
-            // calculate v1 (current row distances) from the previous row v0
+    struct HashLink* current = NULL;
 
-            // first element of v1 is A[i+1][0]
-            //   edit distance is delete (i+1) chars from s to match empty t
-            v1[0] = i + 1
+    // for the capacity of the map
+    for (int i = 0; i < map->capacity; i++)
+    {
+        if (map->table[i] != NULL) // if bucket not empty
+        {
+            current = map->table[i];
 
-            // use formula to fill in the rest of the row
-            for j from 0 to n - 1:
-    // calculating costs for A[i+1][j+1]
-deletionCost: = v0[j + 1] + 1
-insertionCost : = v1[j] + 1
-if s[i] = t[j] :
-    substitutionCost : = v0[j]
-else :
-    substitutionCost : = v0[j] + 1;
+            while (current != NULL)
+            {
+                // get length of current->value
+                for (int i = 0; current->key[i] != '\0'; ++i)
+                {
+                    currentValueLength++;
+                }
 
-v1[j + 1] : = minimum(deletionCost, insertionCost, substitutionCost)
 
-// copy v1 (current row) to v0 (previous row) for next iteration
-// since data in v1 is always invalidated, a swap without copy could be more efficient
-swap v0 with v1
-// after the last swap, the results of v1 are now in v0
-return v0[n]
+                current->value = levenshteinDistance(current->key, input, currentValueLength, lenInput);
+
+                current = current->next;
+                currentValueLength = 0; // reset for next key
+            }
+        }
+    }
 }
-*/
 
 /**
  * Allocates a string for the next word in the file and returns it. This string
@@ -234,12 +479,13 @@ void loadDictionary(FILE* file, HashMap* map)
         currentWord = nextWord(file);
     }
 
-    // test
-    //hashMapPrint(map);
-
-
-
 }
+
+
+
+
+
+
 
 /**
  * Checks the spelling of the word provded by the user. If the word is spelled incorrectly,
@@ -254,6 +500,7 @@ int main(int argc, const char** argv)
 {
     // fixme: implement
     HashMap* map = hashMapNew(1000);
+    struct HashMapSwapped* mapByValue = hashMapNew(1000);
 
     //FILE* file = fopen("dictionary.txt", "r");
     FILE* file = fopen("C:\dictionary.txt", "r");
@@ -264,7 +511,6 @@ int main(int argc, const char** argv)
     fclose(file);
 
     char inputbuffer[256];
-    char inputbuffer2[256]; //TESTME
     int quit = 0;
     while (!quit)
     {
@@ -272,12 +518,14 @@ int main(int argc, const char** argv)
         scanf("%[^\n]%*1[\n]", inputbuffer);
 
         // input validation
+        // Sources consulted for input validator (Retrieved March 2020):
+        // https://stackoverflow.com/questions/27273303/alternate-method-for-clearing-input-buffer-in-c
+        //
         int invalid = 0;
         int length = 0;
 
         for (int i = 0; inputbuffer[i] != '\0'; ++i)
         {
-            printf("%c", inputbuffer[i]);
             if (inputbuffer[i] == 32 || !isalpha(inputbuffer[i]))
             {
                 invalid = 1;
@@ -296,60 +544,42 @@ int main(int argc, const char** argv)
             {
                 inputbuffer[i] = tolower(inputbuffer[i]);
                 length++;
-                printf("%c", inputbuffer[i]);
             }
 
             // calculate levenshtein distance
-            //char test1[6] = { 'k', 'i', 't', 't', 'e', 'n'};
-            //char test2[7] = { 's', 'i', 't', 't', 'i', 'n', 'g'};
+            //int distance = levenshteinDistance(inputbuffer, inputbuffer2, length, length2);
+            fillMapWithDistance(map, inputbuffer, length);
 
-            //int distance = levenshteinDistance(inputbuffer, inputbuffer, length, length);
-
-            //printf("%d", distance);
-
-            // if 0
-                // print spelled correctly
-            // else
-                // print 5 suggestions
-
-            printf("enter a word or \"quit\" to quit: ");
-            scanf("%[^\n]%*1[\n]", inputbuffer2);
-
-            // input validation
-            int invalid2 = 0;
-            int length2 = 0;
-
-            for (int i = 0; inputbuffer2[i] != '\0'; ++i)
+            // spelled correctly
+            if (hashMapContainsKey(map, inputbuffer))
             {
-                printf("%c", inputbuffer2[i]);
-                if (inputbuffer2[i] == 32 || !isalpha(inputbuffer2[i]))
-                {
-                    invalid2 = 1;
-                }
+                printf("The inputted word %s is spelled correctly\n", inputbuffer);
             }
-            printf("\n");
-            if (invalid2 == 1)
+            else if (strcmp(inputbuffer, "quit") == 0)
             {
-                printf("invalid input; try again\n");
+                quit = 1;
             }
+            // suggest 5 correct spellings
             else
-                // implement the spell checker code here..
             {
-                // convert to lower case
-                for (int j = 0; inputbuffer2[j] != '\0'; ++j)
-                {
-                    inputbuffer2[j] = tolower(inputbuffer2[j]);
-                    length2++;
-                    printf("%c", inputbuffer2[j]);
-                }
-                printf("\n");
-                int distance = levenshteinDistance(inputbuffer, inputbuffer2, length, length2);
+                printf("The inputted word %s is spelled incorrectly\n", inputbuffer);
+                printf("Did you mean...?\n");
 
-                printf("THE LEVENSHTEIN DISTANCE IS: %d", distance);
+                // copy dictionary into new one sorted by value instead of key
+                loadDictByValues(map, mapByValue);
+
+                //clock_t timer2 = clock();
+                //loadDictByValues(map, mapByValue);
+                //timer2 = clock() - timer;
+                //printf("dictionary sorted by values loaded in %f seconds\n", (float)timer / (float)CLOCKS_PER_SEC);
+
+
+                // print five smallest from dict sorted by values
+                printFiveSmallest(mapByValue);
             }
+
+            
         }
-        printf("\n");
-       
         
         if (strcmp(inputbuffer, "quit") == 0)
         {
@@ -358,17 +588,7 @@ int main(int argc, const char** argv)
     }
 
     hashMapDelete(map);
+    hashMapSwappedDelete(mapByValue);
     return 0;
 }
-//
-//int isCharAlpha(char c)
-//{
-//    if ((c > 64 && c < 91) || (c > 96 && c < 123))
-//    {
-//        return 1;
-//    }
-//    else
-//    {
-//        return 0;
-//    }
-//}
+
