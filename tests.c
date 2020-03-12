@@ -351,7 +351,7 @@ void addAllTests(CuSuite* suite)
     SUITE_ADD_TEST(suite, testValueUpdate);
 }
 
-/*
+
 int main()
 {
     CuSuite* suite = CuSuiteNew();
@@ -365,4 +365,4 @@ int main()
     CuSuiteDelete(suite);
     return 0;
 }
-*/
+
