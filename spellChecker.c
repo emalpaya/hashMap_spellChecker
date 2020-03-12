@@ -44,6 +44,7 @@ void hashMapSwappedDelete(struct HashMapSwapped* map);
 /**
  * Creates a hash table map, allocating memory for a link pointer table with
  * the given number of buckets.
+ * Differs from struct HashMap in that key and value's types are switched.
  * @param capacity The number of buckets.
  * @return The allocated map.
  */
@@ -57,6 +58,7 @@ struct HashMapSwapped* hashMapSwappedNew(int capacity)
 /**
  * Initializes a hash table map, allocating memory for a link pointer table with
  * the given number of buckets.
+ * Differs from struct HashMap in that key and value's types are switched.
  * @param map
  * @param capacity The number of table buckets.
  */
@@ -73,8 +75,9 @@ void hashMapSwappedInit(struct HashMapSwapped* map, int capacity)
 
 /**
  * Creates a new hash table link with a copy of the key string.
- * @param key Key string to copy in the link.
- * @param value Value to set in the link.
+ * Differs from struct HashMap in that key and value's types are switched.
+ * @param value to copy in the link.
+ * @param key Value to set in the link.
  * @param next Pointer to set as the link's next.
  * @return Hash table link allocated on the heap.
  */
@@ -93,12 +96,12 @@ struct HashLinkSwapped* hashLinkSwappedNew(const char* value, int key, struct Ha
  * Remember that the buckets are linked lists, so this ratio tells you nothing
  * about the number of empty buckets. Remember also that the load is a floating
  * point number, so don't do integer division.
+ * Differs from struct HashMap in that key and value's types are switched.
  * @param map
  * @return Table load.
  */
 float hashMapSwappedTableLoad(struct HashMapSwapped* map)
 {
-    // FIXME: implement
     assert(map != NULL);
 
     return (float)(map->size / map->capacity);
@@ -109,6 +112,7 @@ float hashMapSwappedTableLoad(struct HashMapSwapped* map)
  * key already exists, this will just update the value and skip traversing. Otherwise, it will
  * create a new link with the given key and value and add it to the table
  * bucket's linked list. You can use hashLinkNew to create the link.
+ * Differs from struct HashMap in that key and value's types are switched.
  *
  * Use HASH_FUNCTION(key) and the map's capacity to find the index of the
  * correct linked list bucket.
@@ -119,7 +123,6 @@ float hashMapSwappedTableLoad(struct HashMapSwapped* map)
  */
 void hashMapSwappedPut(struct HashMapSwapped* map, int key, const char* value)
 {
-    // FIXME: implement
     assert(map != NULL);
     assert(value != NULL);
 
@@ -177,7 +180,8 @@ void hashMapSwappedPut(struct HashMapSwapped* map, int key, const char* value)
 }
 
 /**
- * Free the allocated memory for a hash table link created with hashLinkNew.
+ * Free the allocated memory for a hash table link created with hashLinkSwappedNew.
+ * Differs from struct HashMap in that key and value's types are switched.
  * @param link
  */
 static void hashLinkSwappedDelete(struct HashLinkSwapped* link)
@@ -188,7 +192,8 @@ static void hashLinkSwappedDelete(struct HashLinkSwapped* link)
 
 /**
  * Removes all links in the map and frees all allocated memory. You can use
- * hashLinkDelete to free the links.
+ * hashLinkSwappedDelete to free the links.
+ * Differs from struct HashMap in that key and value's types are switched.
  * @param map
  */
 void hashMapSwappedCleanUp(struct HashMapSwapped* map)
@@ -224,6 +229,7 @@ void hashMapSwappedCleanUp(struct HashMapSwapped* map)
 /**
  * Removes all links in the map and frees all allocated memory, including the
  * map itself.
+ * Differs from struct HashMap in that key and value's types are switched.
  * @param map
  */
 void hashMapSwappedDelete(struct HashMapSwapped* map)
@@ -234,9 +240,10 @@ void hashMapSwappedDelete(struct HashMapSwapped* map)
 
 
 /**
- * Loads the contents of the file into the hash map.
- * @param file
+ * Loads the contents of the HashMap file into a new one where the 
+ * types of key and value are switched.
  * @param map
+ * @param mapByValue
  */
 void loadDictByValues(HashMap* map, struct HashMapSwapped* mapByValue)
 {
@@ -265,12 +272,12 @@ void loadDictByValues(HashMap* map, struct HashMapSwapped* mapByValue)
 }
 
 /**
- * Prints all the links in each of the buckets in the table.
+ * Prints the five smallest levenshtein distances from the 
+ * HashMapSwapped where the types of key and value are switched.
  * @param map
  */
 void printFiveSmallest(struct HashMapSwapped* map)
 {
-    // FIXME: implement
     assert(map != NULL);
     int count = 0;
     int fiveOnly = 0;
@@ -385,9 +392,14 @@ int levenshteinDistance(char str1[], char str2[], int len1, int len2)
     return distance;
 }
 
+/**
+ * Fills the original HashMap with the levenshtein distance
+ * @param map
+ * @param input[]
+ * @param lenInput
+**/
 void fillMapWithDistance(HashMap* map, char input[], int lenInput)
 {
-    // FIXME: implement
     assert(map != NULL);
 
     int currentValueLength = 0;
@@ -482,11 +494,6 @@ void loadDictionary(FILE* file, HashMap* map)
 }
 
 
-
-
-
-
-
 /**
  * Checks the spelling of the word provded by the user. If the word is spelled incorrectly,
  * print the 5 closest words as determined by a metric like the Levenshtein distance.
@@ -502,8 +509,8 @@ int main(int argc, const char** argv)
     HashMap* map = hashMapNew(1000);
     struct HashMapSwapped* mapByValue = hashMapNew(1000);
 
-    //FILE* file = fopen("dictionary.txt", "r");
-    FILE* file = fopen("C:\dictionary.txt", "r");
+    FILE* file = fopen("dictionary.txt", "r");
+    //FILE* file = fopen("C:\dictionary.txt", "r");
     clock_t timer = clock();
     loadDictionary(file, map);
     timer = clock() - timer;
@@ -547,7 +554,6 @@ int main(int argc, const char** argv)
             }
 
             // calculate levenshtein distance
-            //int distance = levenshteinDistance(inputbuffer, inputbuffer2, length, length2);
             fillMapWithDistance(map, inputbuffer, length);
 
             // spelled correctly
@@ -567,12 +573,6 @@ int main(int argc, const char** argv)
 
                 // copy dictionary into new one sorted by value instead of key
                 loadDictByValues(map, mapByValue);
-
-                //clock_t timer2 = clock();
-                //loadDictByValues(map, mapByValue);
-                //timer2 = clock() - timer;
-                //printf("dictionary sorted by values loaded in %f seconds\n", (float)timer / (float)CLOCKS_PER_SEC);
-
 
                 // print five smallest from dict sorted by values
                 printFiveSmallest(mapByValue);
