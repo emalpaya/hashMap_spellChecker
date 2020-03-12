@@ -25,7 +25,7 @@ struct HashMapSwapped
 
 // added functions
 int levenshteinDistance(char str1[], char str2[], int len1, int len2);
-void fillMapWithDistance(struct HashMapSwapped map, char input[], int lenInput);
+void fillMapWithDistance(HashMap map, char input[], int lenInput);
 void loadDictByValues(HashMap* map, struct HashMapSwapped* mapByValues);
 void printFiveSmallest(struct HashMapSwapped* mapByValues);
 
