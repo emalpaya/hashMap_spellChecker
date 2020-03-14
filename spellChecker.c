@@ -37,7 +37,7 @@ int hashFunction3(const char* key)
 int levenshteinDistance(char str1[], char str2[], int len1, int len2);
 void fillMapWithDistance(HashMap* map, char input[], int lenInput);
 void loadDictByValues(HashMap* map, struct HashMapSwapped* mapByValues);
-void printFiveSmallest(struct HashMapSwapped* mapByValues);
+int printFiveSmallest(struct HashMapSwapped* mapByValues);
 int getMin(int a, int b);
 
 // hashMapSwapped
@@ -155,19 +155,12 @@ void hashMapSwappedPut(struct HashMapSwapped* map, int key, const char* value)
     while (current != NULL)
     {
         // Determine if key exists in bucket
-        if (current->key == key)
-        {
-            // If so, update the value
-            /*strcpy(value, *current->value);*/
-            const char* temp = value;
-            value = NULL;
-            value = current->value;
-            current->value = NULL;
-            current->value = temp;
-            temp = NULL;
-
-            return;
-        }
+        //if (current->key == key)
+        //{
+        //    // If so, update the value
+        //    strcpy(value, current->value);
+        //    return;
+        //}
         // Move to next link
         current = current->next;
     }
@@ -337,40 +330,37 @@ void loadDictByValues(HashMap* map, struct HashMapSwapped* mapByValue)
  * HashMapSwapped where the types of key and value are switched.
  * @param map
  */
-void printFiveSmallest(struct HashMapSwapped* map)
+int printFiveSmallest(struct HashMapSwapped* map)
 {
     assert(map != NULL);
     int count = 0;
-    int fiveOnly = 0;
 
     struct HashLinkSwapped* current = NULL;
 
-    while (fiveOnly == 0)
+
+    // for the capacity of the map
+    for (int i = 0; i < map->capacity; i++)
     {
-        // for the capacity of the map
-        for (int i = 0; i < map->capacity; i++)
+        if (map->table[i] != NULL) // if bucket not empty
         {
-            if (map->table[i] != NULL) // if bucket not empty
+            current = map->table[i];
+
+            while (current != NULL)
             {
-                current = map->table[i];
+                printf("%s\n", current->value);
+                count++;
 
-                while (current != NULL)
+                if (count > 4)
                 {
-                    printf("%s\n", current->value);
-                    count++;
-
-                    if (count > 4)
-                    {
-                        fiveOnly = 1;
-                        i = map->capacity;
-                    }
-
-                    current = current->next;
+                    return 1;
                 }
+
+                current = current->next;
             }
         }
     }
 
+    return 0;
 }
 
 /**
@@ -587,7 +577,7 @@ int main(int argc, const char** argv)
 {
     // fixme: implement
     HashMap* map = hashMapNew(1000);
-    struct HashMapSwapped* mapByValue = hashMapSwappedNew(1000);
+    struct HashMapSwapped* mapByValue = NULL; hashMapSwappedNew(1000);
 
     FILE* file = fopen("dictionary.txt", "r");
     //FILE* file = fopen("C:\dictionary.txt", "r");
@@ -650,12 +640,15 @@ int main(int argc, const char** argv)
             {
                 printf("The inputted word %s is spelled incorrectly\n", inputbuffer);
                 printf("Did you mean...?\n");
+                mapByValue = hashMapSwappedNew(1000);
 
                 // copy dictionary into new one sorted by value instead of key
                 loadDictByValues(map, mapByValue);
 
                 // print five smallest from dict sorted by values
                 printFiveSmallest(mapByValue);
+
+                hashMapSwappedDelete(mapByValue);
             }
 
 
@@ -668,7 +661,7 @@ int main(int argc, const char** argv)
     }
 
     hashMapDelete(map);
-    hashMapSwappedDelete(mapByValue);
+    
     return 0;
 }
 
