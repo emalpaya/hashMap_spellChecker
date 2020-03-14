@@ -158,7 +158,14 @@ void hashMapSwappedPut(struct HashMapSwapped* map, int key, const char* value)
         if (current->key == key)
         {
             // If so, update the value
-            strcpy(value, current->value);
+            /*strcpy(value, *current->value);*/
+            const char* temp = value;
+            value = NULL;
+            value = current->value;
+            current->value = NULL;
+            current->value = temp;
+            temp = NULL;
+
             return;
         }
         // Move to next link
