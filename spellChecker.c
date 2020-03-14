@@ -23,11 +23,22 @@ struct HashMapSwapped
     int capacity;
 };
 
+int hashFunction3(const char* key)
+{
+    int r = 0;
+    for (int i = 0; key[i] != '\0'; i++)
+    {
+        r += key[i];
+    }
+    return r;
+}
+
 // added functions
 int levenshteinDistance(char str1[], char str2[], int len1, int len2);
 void fillMapWithDistance(HashMap* map, char input[], int lenInput);
 void loadDictByValues(HashMap* map, struct HashMapSwapped* mapByValues);
 void printFiveSmallest(struct HashMapSwapped* mapByValues);
+int getMin(int a, int b);
 
 // hashMapSwapped
 struct HashMapSwapped* hashMapSwappedNew(int capacity);
@@ -38,6 +49,7 @@ void hashMapSwappedPut(struct HashMapSwapped* map, int key, const char* value);
 static void hashLinkSwappedDelete(struct HashLinkSwapped* link);
 void hashMapSwappedCleanUp(struct HashMapSwapped* map);
 void hashMapSwappedDelete(struct HashMapSwapped* map);
+void resizeTableSwapped(struct HashMapSwapped* map, int capacity);
 
 
 
@@ -50,7 +62,7 @@ void hashMapSwappedDelete(struct HashMapSwapped* map);
  */
 struct HashMapSwapped* hashMapSwappedNew(int capacity)
 {
-    struct HashMapSwapped* map = malloc(sizeof(struct HashMapSwapped));
+    struct HashMapSwapped* map = (struct HashMapSwapped*)malloc(sizeof(struct HashMapSwapped));
     hashMapSwappedInit(map, capacity);
     return map;
 }
@@ -66,7 +78,7 @@ void hashMapSwappedInit(struct HashMapSwapped* map, int capacity)
 {
     map->capacity = capacity;
     map->size = 0;
-    map->table = malloc(sizeof(struct HashLinkSwapped*) * capacity);
+    map->table = (struct HashLinkSwapped**)malloc(sizeof(struct HashLinkSwapped*) * capacity);
     for (int i = 0; i < capacity; i++)
     {
         map->table[i] = NULL;
@@ -83,8 +95,8 @@ void hashMapSwappedInit(struct HashMapSwapped* map, int capacity)
  */
 struct HashLinkSwapped* hashLinkSwappedNew(const char* value, int key, struct HashLinkSwapped* next)
 {
-    struct HashLinkSwapped* link = malloc(sizeof(struct HashLinkSwapped));
-    link->value = malloc(sizeof(char) * (strlen(key) + 1));
+    struct HashLinkSwapped* link = (struct HashLinkSwapped*)malloc(sizeof(struct HashLinkSwapped));
+    link->value = malloc(sizeof(char) * (strlen(value) + 1));
     strcpy(link->value, value);
     link->key = key;
     link->next = next;
@@ -130,7 +142,7 @@ void hashMapSwappedPut(struct HashMapSwapped* map, int key, const char* value)
     sprintf(str, "%d", key);
 
     // Compute the hash value to find the correct bucket
-    int hashIndex = HASH_FUNCTION(str) % map->capacity;
+    int hashIndex = hashFunction3(str) % map->capacity;
 
     if (hashIndex < 0)
     {
@@ -146,7 +158,7 @@ void hashMapSwappedPut(struct HashMapSwapped* map, int key, const char* value)
         if (current->key == key)
         {
             // If so, update the value
-            current->value = value;
+            strcpy(value, current->value);
             return;
         }
         // Move to next link
@@ -157,21 +169,21 @@ void hashMapSwappedPut(struct HashMapSwapped* map, int key, const char* value)
     // Make sure have space and under load factor threshold
     if (hashMapSwappedTableLoad(map) > 0.75)
     {
-        resizeTable(map, map->capacity * 2);
+        resizeTableSwapped(map, map->capacity * 2);
 
         char str[50];
         sprintf(str, "%d", key);
 
         // Compute the hash value to find the correct bucket
-        int hashIndex = HASH_FUNCTION(str) % map->capacity;
+        int hashIndex = hashFunction3(str) % map->capacity;
 
         if (hashIndex < 0)
         {
             hashIndex += map->capacity;
         }
     }
-    struct HashLinkSwapped* newLink = malloc(sizeof(struct HashLinkSwapped));
-    newLink->value = malloc(sizeof(char) * (strlen(value) + 1));
+    struct HashLinkSwapped* newLink = (struct HashLinkSwapped*)malloc(sizeof(struct HashLinkSwapped));
+    newLink->value = (char*)malloc(sizeof(char) * (strlen(value) + 1));
     strcpy(newLink->value, value);
     newLink->key = key;
     newLink->next = map->table[hashIndex];
@@ -238,9 +250,51 @@ void hashMapSwappedDelete(struct HashMapSwapped* map)
     free(map);
 }
 
+/**
+ * Resizes the hash table to have a number of buckets equal to the given
+ * capacity (double of the old capacity). After allocating the new table,
+ * all of the links need to rehashed into it because the capacity has changed.
+ * Differs from struct HashMap in that key and value's types are switched.
+ *
+ * Remember to free the old table and any old links if you use hashMapPut to
+ * rehash them.
+ *
+ * @param map
+ * @param capacity The new number of buckets.
+ */
+void resizeTableSwapped(struct HashMapSwapped* map, int capacity)
+{
+    assert(map != NULL);
+
+    // Create new map with twice the size
+    struct HashMapSwapped* newMap = hashMapSwappedNew(capacity);
+    struct HashLinkSwapped* current;
+
+    // Loop through old map and traverse links. Add value to new map.
+    for (int i = 0; i < capacity / 2; i++)
+    {
+        current = map->table[i];
+
+        while (current != NULL)
+        {
+            hashMapSwappedPut(newMap, current->key, current->value);
+            current = current->next;
+        }
+    }
+
+    // Delete old map. Set old map value equal to new map.
+    hashMapSwappedCleanUp(map);
+    map->capacity = newMap->capacity;
+    map->size = newMap->size;
+    map->table = newMap->table;
+
+    newMap->table = NULL;
+    free(newMap);
+}
+
 
 /**
- * Loads the contents of the HashMap file into a new one where the 
+ * Loads the contents of the HashMap file into a new one where the
  * types of key and value are switched.
  * @param map
  * @param mapByValue
@@ -272,7 +326,7 @@ void loadDictByValues(HashMap* map, struct HashMapSwapped* mapByValue)
 }
 
 /**
- * Prints the five smallest levenshtein distances from the 
+ * Prints the five smallest levenshtein distances from the
  * HashMapSwapped where the types of key and value are switched.
  * @param map
  */
@@ -313,6 +367,25 @@ void printFiveSmallest(struct HashMapSwapped* map)
 }
 
 /**
+ * Returns the smaller of two integers.
+ * @param a
+ * @param b
+ */
+int getMin(int a, int b)
+{
+    if (a < b)
+    {
+        return a;
+    }
+    else
+    {
+        return b;
+    }
+}
+
+
+
+/**
  * Accepts two strings and their lengths, calculates the levenshtein
  * distance between them, and returns it.
  * @param str1
@@ -330,7 +403,7 @@ int levenshteinDistance(char str1[], char str2[], int len1, int len2)
     int distance;
     int deleteCost, insertCost, subCost = 0;
     int* temp = NULL;
-    
+
     int* previous = (int*)malloc(sizeof(int) * (len1 + 1));
     int* current = (int*)malloc(sizeof(int) * (len1 + 1));
 
@@ -349,7 +422,7 @@ int levenshteinDistance(char str1[], char str2[], int len1, int len2)
     {
         // fill first element of current
         current[0] = i + 1;
-    
+
         // fill remaining columns of current
         for (int j = 0; j < len1; j++)
         {
@@ -365,7 +438,7 @@ int levenshteinDistance(char str1[], char str2[], int len1, int len2)
                 subCost = previous[j] + 1;
             }
 
-            current[j + 1] = min(deleteCost, min(insertCost, subCost));
+            current[j + 1] = getMin(deleteCost, getMin(insertCost, subCost));
 
         }
 
@@ -441,7 +514,7 @@ char* nextWord(FILE* file)
 {
     int maxLength = 16;
     int length = 0;
-    char* word = malloc(sizeof(char) * maxLength);
+    char* word = (char*)malloc(sizeof(char) * maxLength);
     while (1)
     {
         char c = fgetc(file);
@@ -507,7 +580,7 @@ int main(int argc, const char** argv)
 {
     // fixme: implement
     HashMap* map = hashMapNew(1000);
-    struct HashMapSwapped* mapByValue = hashMapNew(1000);
+    struct HashMapSwapped* mapByValue = hashMapSwappedNew(1000);
 
     FILE* file = fopen("dictionary.txt", "r");
     //FILE* file = fopen("C:\dictionary.txt", "r");
@@ -544,7 +617,7 @@ int main(int argc, const char** argv)
             printf("invalid input; try again\n");
         }
         else
-        // implement the spell checker code here..
+            // implement the spell checker code here..
         {
             // convert to lower case
             for (int i = 0; inputbuffer[i] != '\0'; ++i)
@@ -578,9 +651,9 @@ int main(int argc, const char** argv)
                 printFiveSmallest(mapByValue);
             }
 
-            
+
         }
-        
+
         if (strcmp(inputbuffer, "quit") == 0)
         {
             quit = 1;
